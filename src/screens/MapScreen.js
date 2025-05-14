@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   View, 
   Text, 
@@ -6,57 +6,160 @@ import {
   TouchableOpacity, 
   SafeAreaView,
   Dimensions,
-  ActivityIndicator 
+  Alert 
 } from 'react-native';
+import { Marker } from 'react-native-maps';
 import ConnectionStatus from '../components/ConnectionStatus';
+import OfflineMap from '../components/OfflineMap';
+import Geolocation from 'react-native-geolocation-service';
 import { requestLocationPermissions } from '../utils/permissions';
+import locationService from '../services/locationService';
 
 const MapScreen = () => {
-  const [loading, setLoading] = useState(true);
-  const [mapReady, setMapReady] = useState(false);
-  const [location, setLocation] = useState(null);
+  const [isTracking, setIsTracking] = useState(false);
+  const [userLocation, setUserLocation] = useState(null);
   const [nearbyHikers, setNearbyHikers] = useState([]);
-
+  const [trackHistory, setTrackHistory] = useState([]);
+  const mapRef = useRef(null);
+  
   useEffect(() => {
-    // Simulate loading the map
-    const timer = setTimeout(() => {
-      setLoading(false);
-      setMapReady(true);
-      // Simulated current location data
-      setLocation({
-        latitude: 37.7749,
-        longitude: -122.4194,
-      });
-    }, 1500);
-
-    // Check for location permissions
-    const checkPermissions = async () => {
-      await requestLocationPermissions();
+    // Request location permissions and get initial location
+    const initializeLocation = async () => {
+      const hasPermission = await requestLocationPermissions();
+      if (hasPermission) {
+        try {
+          const location = await locationService.getCurrentLocation();
+          if (location) {
+            setUserLocation(location);
+          }
+        } catch (error) {
+          console.error('Error getting initial location:', error);
+        }
+      }
     };
     
-    checkPermissions();
+    initializeLocation();
     
-    return () => clearTimeout(timer);
+    // Cleanup
+    return () => {
+      if (isTracking) {
+        stopTracking();
+      }
+    };
   }, []);
 
+  // Toggle location tracking
   const toggleTrackingMode = () => {
-    // This will be implemented with actual GPS tracking in the future
-    console.log('Tracking mode toggled');
+    if (isTracking) {
+      stopTracking();
+    } else {
+      startTracking();
+    }
   };
 
+  // Start tracking user's location
+  const startTracking = async () => {
+    try {
+      // Clear previous track history
+      setTrackHistory([]);
+      
+      // Start location tracking
+      await locationService.startTracking(5000); // Update every 5 seconds
+      
+      // Subscribe to location updates
+      locationService.onLocationUpdate((location) => {
+        setUserLocation(location);
+        
+        // Add to track history
+        setTrackHistory(prevHistory => [
+          ...prevHistory,
+          {
+            latitude: location.latitude,
+            longitude: location.longitude,
+            timestamp: new Date().toISOString()
+          }
+        ]);
+      });
+      
+      setIsTracking(true);
+      Alert.alert('Tracking Started', 'Your location is now being tracked.');
+    } catch (error) {
+      console.error('Error starting tracking:', error);
+      Alert.alert('Error', 'Failed to start location tracking.');
+    }
+  };
+
+  // Stop tracking user's location
+  const stopTracking = () => {
+    try {
+      locationService.stopTracking();
+      setIsTracking(false);
+      Alert.alert('Tracking Stopped', `Recorded ${trackHistory.length} location points.`);
+    } catch (error) {
+      console.error('Error stopping tracking:', error);
+    }
+  };
+
+  // Find nearby hikers using Bluetooth
   const findNearbyHikers = () => {
     // This will be implemented with actual Bluetooth/Bridgefy functionality in the future
     console.log('Finding nearby hikers...');
+    
     // Simulate finding hikers
-    setNearbyHikers([
-      { id: '1', name: 'Alex', distance: '0.5 miles' },
-      { id: '2', name: 'Jamie', distance: '1.2 miles' },
-    ]);
+    const mockHikers = [
+      { 
+        id: '1', 
+        name: 'Alex', 
+        distance: '0.5 miles',
+        location: {
+          latitude: userLocation ? userLocation.latitude + 0.002 : 37.7751,
+          longitude: userLocation ? userLocation.longitude + 0.001 : -122.4184,
+        }
+      },
+      { 
+        id: '2', 
+        name: 'Jamie', 
+        distance: '1.2 miles',
+        location: {
+          latitude: userLocation ? userLocation.latitude - 0.003 : 37.7719,
+          longitude: userLocation ? userLocation.longitude - 0.002 : -122.4214,
+        }
+      },
+    ];
+    
+    setNearbyHikers(mockHikers);
   };
 
+  // Share user's location with nearby hikers
   const shareLocation = () => {
-    // This will be implemented with actual Bluetooth/Bridgefy functionality in the future
-    console.log('Location shared with nearby hikers');
+    // This will be implemented with actual Bluetooth/Bridgefy functionality
+    if (!userLocation) {
+      Alert.alert('Error', 'Cannot share location: your current location is unknown.');
+      return;
+    }
+    
+    Alert.alert(
+      'Share Location',
+      'This will broadcast your current location to nearby hikers. Continue?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel'
+        },
+        {
+          text: 'Share',
+          onPress: () => {
+            console.log('Location shared with nearby hikers:', userLocation);
+            Alert.alert('Success', 'Your location has been shared with nearby hikers.');
+          }
+        }
+      ]
+    );
+  };
+
+  // Handle map region change
+  const handleRegionChange = (region) => {
+    console.log('Map region changed:', region);
   };
 
   return (
@@ -64,31 +167,37 @@ const MapScreen = () => {
       <ConnectionStatus />
       
       <View style={styles.mapContainer}>
-        {loading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#27ae60" />
-            <Text style={styles.loadingText}>Loading Map...</Text>
-          </View>
-        ) : (
-          <View style={styles.mapPlaceholder}>
-            <Text style={styles.mapPlaceholderText}>
-              Map Content Will Appear Here
-            </Text>
-            {location && (
-              <Text style={styles.locationText}>
-                Location: {location.latitude.toFixed(4)}, {location.longitude.toFixed(4)}
-              </Text>
-            )}
-          </View>
-        )}
+        <OfflineMap
+          showUserLocation={true}
+          onRegionChange={handleRegionChange}
+          ref={mapRef}
+        >
+          {/* Display nearby hikers as markers */}
+          {nearbyHikers.map(hiker => (
+            hiker.location && (
+              <Marker
+                key={hiker.id}
+                coordinate={hiker.location}
+                title={hiker.name}
+                description={`${hiker.distance} away`}
+                pinColor="#3498db"
+              />
+            )
+          ))}
+        </OfflineMap>
       </View>
       
       <View style={styles.controlsContainer}>
         <TouchableOpacity 
-          style={styles.controlButton}
+          style={[
+            styles.controlButton,
+            isTracking ? styles.activeButton : null
+          ]}
           onPress={toggleTrackingMode}
         >
-          <Text style={styles.controlButtonText}>Toggle Tracking</Text>
+          <Text style={styles.controlButtonText}>
+            {isTracking ? 'Stop Tracking' : 'Start Tracking'}
+          </Text>
         </TouchableOpacity>
         
         <TouchableOpacity 
@@ -110,10 +219,23 @@ const MapScreen = () => {
         <View style={styles.hikersContainer}>
           <Text style={styles.hikersTitle}>Nearby Hikers:</Text>
           {nearbyHikers.map((hiker) => (
-            <View key={hiker.id} style={styles.hikerItem}>
+            <TouchableOpacity 
+              key={hiker.id} 
+              style={styles.hikerItem}
+              onPress={() => {
+                if (hiker.location && mapRef.current) {
+                  mapRef.current.animateToRegion({
+                    latitude: hiker.location.latitude,
+                    longitude: hiker.location.longitude,
+                    latitudeDelta: 0.01,
+                    longitudeDelta: 0.01,
+                  });
+                }
+              }}
+            >
               <Text style={styles.hikerName}>{hiker.name}</Text>
               <Text style={styles.hikerDistance}>{hiker.distance}</Text>
-            </View>
+            </TouchableOpacity>
           ))}
         </View>
       )}
@@ -131,32 +253,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#f0f0f0',
     marginBottom: 20,
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 10,
-    color: '#2c3e50',
-    fontSize: 16,
-  },
-  mapPlaceholder: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#e0e0e0',
-  },
-  mapPlaceholderText: {
-    color: '#2c3e50',
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  locationText: {
-    marginTop: 15,
-    color: '#27ae60',
-    fontSize: 14,
-  },
   controlsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
@@ -170,6 +266,9 @@ const styles = StyleSheet.create({
     flex: 1,
     marginHorizontal: 5,
     alignItems: 'center',
+  },
+  activeButton: {
+    backgroundColor: '#e74c3c',
   },
   controlButtonText: {
     color: 'white',

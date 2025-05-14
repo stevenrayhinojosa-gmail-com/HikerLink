@@ -38,7 +38,11 @@ module.exports = {
   resolve: {
     extensions: ['.web.js', '.js'],
     alias: {
-      'react-native$': 'react-native-web'
+      'react-native$': 'react-native-web',
+      // Add web mocks for native modules
+      'react-native-fs': path.resolve(__dirname, 'src/mocks/web-mocks.js'),
+      'react-native-maps': path.resolve(__dirname, 'src/mocks/web-mocks.js'),
+      'react-native-geolocation-service': path.resolve(__dirname, 'src/mocks/web-mocks.js')
     }
   },
   plugins: [
