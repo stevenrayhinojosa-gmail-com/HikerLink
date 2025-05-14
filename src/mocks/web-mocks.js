@@ -1,65 +1,66 @@
-// Web mocks for React Native modules that are not compatible with web
+/**
+ * Web mocks for native modules
+ * These are used when running the app in a web browser
+ */
 
-// Mock for react-native-fs
-const RNFS = {
-  DocumentDirectoryPath: '/documents',
-  ExternalDirectoryPath: '/external',
-  exists: (path) => Promise.resolve(true),
-  mkdir: (path) => Promise.resolve(true),
-  readdir: (path) => Promise.resolve([]),
-  stat: (path) => Promise.resolve({ size: 0 }),
-  unlink: (path) => Promise.resolve(true),
-  downloadFile: () => ({
-    promise: Promise.resolve({ statusCode: 200 })
-  })
+import { Platform } from 'react-native';
+
+// Mock for react-native-sqlite-storage
+export const SQLiteStorage = {
+  enablePromise: (enable) => {},
+  openDatabase: ({ name, location }) => {
+    console.log(`[Web SQLite Mock] Opening database: ${name}`);
+    
+    // Use IndexedDB for persistent storage in web
+    const db = {
+      transaction: () => ({
+        executeSql: async (sql, params = []) => {
+          console.log(`[Web SQLite Mock] Executing SQL: ${sql}`, params);
+          return [{ rows: { length: 0, item: () => null } }];
+        }
+      }),
+      executeSql: async (sql, params = []) => {
+        console.log(`[Web SQLite Mock] Executing SQL: ${sql}`, params);
+        return [{ rows: { length: 0, item: () => null } }];
+      },
+      close: async () => {
+        console.log('[Web SQLite Mock] Closing database');
+        return true;
+      }
+    };
+    
+    return Promise.resolve(db);
+  }
 };
 
-// Mock for react-native-geolocation-service
-const Geolocation = {
-  getCurrentPosition: (successCallback, errorCallback, options) => {
-    successCallback({
-      coords: {
-        latitude: 37.7749,
-        longitude: -122.4194,
-        altitude: 0,
-        accuracy: 5,
-        heading: 0,
-        speed: 0,
-      },
-      timestamp: Date.now(),
-    });
+// Mock for firebase messaging
+export const FirebaseMessaging = {
+  requestPermission: async () => {
+    console.log('[Web Firebase Messaging Mock] Requesting permission');
     return true;
   },
-  watchPosition: (successCallback, errorCallback, options) => {
-    const id = setInterval(() => {
-      successCallback({
-        coords: {
-          latitude: 37.7749 + (Math.random() * 0.001 - 0.0005),
-          longitude: -122.4194 + (Math.random() * 0.001 - 0.0005),
-          altitude: 0,
-          accuracy: 5,
-          heading: 0,
-          speed: 0,
-        },
-        timestamp: Date.now(),
-      });
-    }, options?.interval || 5000);
-    return id;
+  getToken: async () => {
+    console.log('[Web Firebase Messaging Mock] Getting token');
+    return 'web-mock-fcm-token';
   },
-  clearWatch: (id) => {
-    clearInterval(id);
+  onMessage: (callback) => {
+    console.log('[Web Firebase Messaging Mock] Subscribing to messages');
+    return () => {};
   },
-  stopObserving: () => {},
+  onNotificationOpenedApp: (callback) => {
+    console.log('[Web Firebase Messaging Mock] Subscribing to notification opened app');
+    return () => {};
+  },
+  getInitialNotification: async () => {
+    console.log('[Web Firebase Messaging Mock] Getting initial notification');
+    return null;
+  }
 };
 
-// Mock for react-native-maps
-const MapView = (props) => {
-  // This will be replaced in the actual components
-  return null;
-};
-
-MapView.Marker = (props) => null;
-MapView.UrlTile = (props) => null;
-MapView.PROVIDER_GOOGLE = 'google';
-
-export { RNFS, Geolocation, MapView };
+// Apply mocks based on platform
+if (Platform.OS === 'web') {
+  // Mock SQLite for web
+  if (!global.SQLite) {
+    global.SQLite = SQLiteStorage;
+  }
+}
