@@ -1,87 +1,153 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import firebaseService from '../services/firebaseService';
+import messagingService from '../services/messagingService';
 
 const ConnectionStatus = () => {
-  const [connectionType, setConnectionType] = useState('offline');
-  const [nearbyDevices, setNearbyDevices] = useState(0);
+  const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' && 'onLine' in navigator ? navigator.onLine : false);
+  const [syncStatus, setSyncStatus] = useState({
+    lastSyncTime: null,
+    pendingMessages: 0,
+    syncing: false,
+  });
   
   useEffect(() => {
-    // Simulate checking connection type and nearby devices
-    // In a real app, this would use actual Bluetooth and network detection
-    const simulateConnectionCheck = () => {
-      // Randomly choose a connection type for demonstration
-      const connectionTypes = ['cellular', 'wifi', 'bluetooth', 'offline'];
-      const randomConnection = connectionTypes[Math.floor(Math.random() * connectionTypes.length)];
-      setConnectionType(randomConnection);
+    // Check initial online status
+    checkOnlineStatus();
+    
+    // Set up event listeners for online/offline events
+    if (typeof window !== 'undefined') {
+      window.addEventListener('online', handleOnline);
+      window.addEventListener('offline', handleOffline);
       
-      // Simulate finding nearby devices
-      if (randomConnection === 'bluetooth') {
-        setNearbyDevices(Math.floor(Math.random() * 5) + 1);
-      } else {
-        setNearbyDevices(0);
-      }
-    };
-    
-    // Check on mount
-    simulateConnectionCheck();
-    
-    // Set up interval to periodically check
-    const interval = setInterval(simulateConnectionCheck, 30000);
-    
-    return () => clearInterval(interval);
+      // Set up interval to check sync status
+      const interval = setInterval(checkSyncStatus, 10000); // Every 10 seconds
+      
+      return () => {
+        window.removeEventListener('online', handleOnline);
+        window.removeEventListener('offline', handleOffline);
+        clearInterval(interval);
+      };
+    }
   }, []);
   
-  const getStatusColor = () => {
-    switch (connectionType) {
-      case 'cellular':
-        return '#3498db'; // blue
-      case 'wifi':
-        return '#27ae60'; // green
-      case 'bluetooth':
-        return '#9b59b6'; // purple
-      case 'offline':
-      default:
-        return '#e74c3c'; // red
+  const checkOnlineStatus = () => {
+    if (typeof navigator !== 'undefined' && 'onLine' in navigator) {
+      setIsOnline(navigator.onLine);
     }
   };
   
-  const getStatusText = () => {
-    switch (connectionType) {
-      case 'cellular':
-        return 'Cellular';
-      case 'wifi':
-        return 'Wi-Fi';
-      case 'bluetooth':
-        return `Bluetooth (${nearbyDevices} nearby)`;
-      case 'offline':
-      default:
-        return 'Offline';
+  const handleOnline = () => {
+    setIsOnline(true);
+    
+    // Start sync when coming online
+    syncMessages();
+  };
+  
+  const handleOffline = () => {
+    setIsOnline(false);
+    setSyncStatus(prev => ({
+      ...prev,
+      syncing: false,
+    }));
+  };
+  
+  const checkSyncStatus = async () => {
+    // Only check if we're online
+    if (!isOnline || !firebaseService.isSignedIn()) {
+      return;
+    }
+    
+    try {
+      // Get count of messages pending sync
+      const pendingCount = await messagingService.getPendingMessageCount();
+      setSyncStatus(prev => ({
+        ...prev,
+        pendingMessages: pendingCount,
+      }));
+      
+      // Auto-sync if there are pending messages
+      if (pendingCount > 0 && !syncStatus.syncing) {
+        syncMessages();
+      }
+    } catch (err) {
+      console.error('Error checking sync status:', err);
+    }
+  };
+  
+  const syncMessages = async () => {
+    if (!isOnline || syncStatus.syncing || !firebaseService.isSignedIn()) {
+      return;
+    }
+    
+    try {
+      setSyncStatus(prev => ({
+        ...prev,
+        syncing: true,
+      }));
+      
+      // Sync messages
+      const syncedCount = await messagingService.syncMessages();
+      
+      // Update sync status
+      setSyncStatus({
+        lastSyncTime: new Date(),
+        pendingMessages: Math.max(0, syncStatus.pendingMessages - syncedCount),
+        syncing: false,
+      });
+    } catch (err) {
+      console.error('Error syncing messages:', err);
+      setSyncStatus(prev => ({
+        ...prev,
+        syncing: false,
+      }));
     }
   };
   
   return (
     <View style={styles.container}>
-      <View style={[styles.statusIndicator, { backgroundColor: getStatusColor() }]} />
-      <Text style={styles.statusText}>{getStatusText()}</Text>
+      <View style={styles.statusRow}>
+        <View style={[styles.statusIndicator, isOnline ? styles.online : styles.offline]} />
+        <Text style={styles.statusText}>
+          {isOnline ? 'Online' : 'Offline'} Mode
+        </Text>
+        
+        {isOnline && firebaseService.isSignedIn() && (
+          <TouchableOpacity 
+            style={styles.syncButton}
+            onPress={syncMessages}
+            disabled={syncStatus.syncing || syncStatus.pendingMessages === 0}
+          >
+            <Text style={styles.syncButtonText}>
+              {syncStatus.syncing 
+                ? 'Syncing...' 
+                : syncStatus.pendingMessages > 0 
+                  ? `Sync (${syncStatus.pendingMessages})` 
+                  : 'Synced'}
+            </Text>
+          </TouchableOpacity>
+        )}
+      </View>
+      
+      {syncStatus.lastSyncTime && (
+        <Text style={styles.lastSyncText}>
+          Last synced: {syncStatus.lastSyncTime.toLocaleTimeString()}
+        </Text>
+      )}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
+    marginBottom: 15,
+    padding: 10,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 8,
+  },
+  statusRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    paddingVertical: 8,
-    paddingHorizontal: 15,
-    borderRadius: 20,
-    alignSelf: 'flex-start',
-    marginBottom: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
   },
   statusIndicator: {
     width: 10,
@@ -89,10 +155,32 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     marginRight: 8,
   },
+  online: {
+    backgroundColor: '#27ae60',
+  },
+  offline: {
+    backgroundColor: '#e74c3c',
+  },
   statusText: {
-    color: '#2c3e50',
-    fontWeight: '500',
     fontSize: 14,
+    color: '#34495e',
+    flex: 1,
+  },
+  syncButton: {
+    backgroundColor: '#3498db',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 4,
+    alignItems: 'center',
+  },
+  syncButtonText: {
+    color: 'white',
+    fontSize: 12,
+  },
+  lastSyncText: {
+    fontSize: 12,
+    color: '#7f8c8d',
+    marginTop: 4,
   },
 });
 

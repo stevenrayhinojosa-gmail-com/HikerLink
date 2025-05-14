@@ -653,6 +653,25 @@ class MessagingService {
     
     return await firebaseService.syncMessagesToCloud();
   }
+  
+  /**
+   * Get count of messages pending cloud sync
+   * @returns {Promise<number>} Count of pending messages
+   */
+  async getPendingMessageCount() {
+    if (!this.initialized) {
+      return 0;
+    }
+    
+    try {
+      // Get count from database service
+      const messages = await databaseService.getMessagesNeedingSync(999);
+      return messages.length;
+    } catch (error) {
+      console.error('Error getting pending message count:', error);
+      return 0;
+    }
+  }
 
   /**
    * Set up network monitoring

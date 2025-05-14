@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -6,11 +6,111 @@ import {
   ScrollView, 
   TouchableOpacity, 
   SafeAreaView,
-  Alert
+  Alert,
+  Modal,
+  TextInput,
+  ActivityIndicator
 } from 'react-native';
 import ConnectionStatus from '../components/ConnectionStatus';
+import firebaseService from '../services/firebaseService';
+import messagingService from '../services/messagingService';
 
 const HomeScreen = ({ navigation }) => {
+  const [user, setUser] = useState(null);
+  const [isAuthModalVisible, setIsAuthModalVisible] = useState(false);
+  const [authMode, setAuthMode] = useState('login'); // 'login' or 'signup'
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [displayName, setDisplayName] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  // Check user login state
+  useEffect(() => {
+    const currentUser = firebaseService.getCurrentUser();
+    setUser(currentUser);
+  }, []);
+
+  // Handle authentication
+  const handleAuth = async () => {
+    if (!email || !password) {
+      setError('Please enter email and password');
+      return;
+    }
+
+    setIsLoading(true);
+    setError('');
+
+    try {
+      if (authMode === 'login') {
+        await firebaseService.signInWithEmail(email, password);
+      } else {
+        if (!displayName) {
+          setError('Please enter a display name');
+          setIsLoading(false);
+          return;
+        }
+        await firebaseService.signUpWithEmail(email, password, displayName);
+      }
+
+      // Update user state
+      setUser(firebaseService.getCurrentUser());
+      
+      // Update username in messaging service
+      if (firebaseService.getCurrentUser()) {
+        messagingService.setUsername(firebaseService.getCurrentUser().displayName);
+      }
+      
+      // Close the modal
+      setIsAuthModalVisible(false);
+      
+      // Reset fields
+      setEmail('');
+      setPassword('');
+      setDisplayName('');
+    } catch (err) {
+      console.error('Authentication error:', err);
+      setError(err.message || 'Authentication failed');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Sign in anonymously
+  const handleAnonymousSignIn = async () => {
+    setIsLoading(true);
+    setError('');
+    
+    try {
+      await firebaseService.signInAnonymously();
+      setUser(firebaseService.getCurrentUser());
+      
+      // Update username in messaging service
+      if (firebaseService.getCurrentUser()) {
+        messagingService.setUsername(firebaseService.getCurrentUser().displayName);
+      }
+      
+      // Close the modal
+      setIsAuthModalVisible(false);
+    } catch (err) {
+      console.error('Anonymous sign-in error:', err);
+      setError(err.message || 'Anonymous sign-in failed');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Sign out
+  const handleSignOut = async () => {
+    try {
+      await firebaseService.signOut();
+      setUser(null);
+    } catch (err) {
+      console.error('Sign out error:', err);
+      Alert.alert('Error', 'Failed to sign out');
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.contentContainer}>
@@ -18,7 +118,31 @@ const HomeScreen = ({ navigation }) => {
         
         <View style={styles.welcomeSection}>
           <Text style={styles.title}>Welcome to HikerLink</Text>
-          <Text style={styles.subtitle}>Connect with fellow hikers even without cellular service</Text>
+          <Text style={styles.subtitle}>
+            {user ? `Signed in as ${user.displayName || 'Anonymous'}` : 'Connect with fellow hikers even without cellular service'}
+          </Text>
+          
+          {/* Authentication buttons */}
+          <View style={styles.authButtons}>
+            {user ? (
+              <TouchableOpacity
+                style={styles.signOutButton}
+                onPress={handleSignOut}
+              >
+                <Text style={styles.signOutButtonText}>Sign Out</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={styles.signInButton}
+                onPress={() => {
+                  setIsAuthModalVisible(true);
+                  setAuthMode('login');
+                }}
+              >
+                <Text style={styles.signInButtonText}>Sign In / Sign Up</Text>
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
         
         <View style={styles.featuresSection}>
@@ -67,7 +191,7 @@ const HomeScreen = ({ navigation }) => {
             
             <TouchableOpacity 
               style={styles.actionButton}
-              onPress={() => console.log('Track My Hike')}
+              onPress={() => navigation.navigate('MapTab', { startTracking: true })}
             >
               <Text style={styles.actionButtonText}>Track My Hike</Text>
             </TouchableOpacity>
@@ -81,8 +205,103 @@ const HomeScreen = ({ navigation }) => {
             with fellow hikers even when cellular service is unavailable. Share your location,
             send messages, and stay safe on the trail.
           </Text>
+          <Text style={styles.infoText}>
+            When online, HikerLink syncs your data to the cloud, allowing you to access
+            your messages and track history on any device. Sign in to enable cloud sync.
+          </Text>
         </View>
       </ScrollView>
+
+      {/* Authentication Modal */}
+      <Modal
+        visible={isAuthModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setIsAuthModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>
+              {authMode === 'login' ? 'Sign In' : 'Create Account'}
+            </Text>
+
+            {error ? (
+              <Text style={styles.errorText}>{error}</Text>
+            ) : null}
+
+            {authMode === 'signup' ? (
+              <TextInput
+                style={styles.input}
+                placeholder="Display Name"
+                value={displayName}
+                onChangeText={setDisplayName}
+                autoCapitalize="words"
+              />
+            ) : null}
+
+            <TextInput
+              style={styles.input}
+              placeholder="Email"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+
+            <TextInput
+              style={styles.input}
+              placeholder="Password"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+            />
+
+            <TouchableOpacity
+              style={styles.authButton}
+              onPress={handleAuth}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <ActivityIndicator color="#fff" size="small" />
+              ) : (
+                <Text style={styles.authButtonText}>
+                  {authMode === 'login' ? 'Sign In' : 'Sign Up'}
+                </Text>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.authToggleButton}
+              onPress={() => setAuthMode(authMode === 'login' ? 'signup' : 'login')}
+              disabled={isLoading}
+            >
+              <Text style={styles.authToggleText}>
+                {authMode === 'login'
+                  ? "Don't have an account? Sign Up"
+                  : 'Already have an account? Sign In'}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.anonymousButton}
+              onPress={handleAnonymousSignIn}
+              disabled={isLoading}
+            >
+              <Text style={styles.anonymousButtonText}>
+                Continue Anonymously
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => setIsAuthModalVisible(false)}
+              disabled={isLoading}
+            >
+              <Text style={styles.closeButtonText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -107,6 +326,32 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 16,
     color: '#7f8c8d',
+    marginBottom: 10,
+  },
+  authButtons: {
+    marginTop: 10,
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+  },
+  signInButton: {
+    backgroundColor: '#3498db',
+    paddingVertical: 8,
+    paddingHorizontal: 15,
+    borderRadius: 20,
+  },
+  signInButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+  },
+  signOutButton: {
+    backgroundColor: '#95a5a6',
+    paddingVertical: 8,
+    paddingHorizontal: 15,
+    borderRadius: 20,
+  },
+  signOutButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
   },
   featuresSection: {
     marginBottom: 30,
@@ -141,10 +386,87 @@ const styles = StyleSheet.create({
     padding: 15,
     backgroundColor: '#ecf0f1',
     borderRadius: 10,
+    marginBottom: 20,
   },
   infoText: {
     color: '#34495e',
     lineHeight: 20,
+    marginBottom: 10,
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderRadius: 10,
+    padding: 20,
+    width: '100%',
+    maxWidth: 400,
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#2c3e50',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 5,
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    marginBottom: 15,
+    fontSize: 16,
+  },
+  authButton: {
+    backgroundColor: '#3498db',
+    padding: 15,
+    borderRadius: 5,
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  authButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  authToggleButton: {
+    marginBottom: 15,
+    alignItems: 'center',
+  },
+  authToggleText: {
+    color: '#3498db',
+    fontSize: 16,
+  },
+  anonymousButton: {
+    backgroundColor: '#95a5a6',
+    padding: 12,
+    borderRadius: 5,
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  anonymousButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+  },
+  closeButton: {
+    padding: 10,
+    alignItems: 'center',
+  },
+  closeButtonText: {
+    color: '#7f8c8d',
+    fontSize: 16,
+  },
+  errorText: {
+    color: '#e74c3c',
+    marginBottom: 15,
+    textAlign: 'center',
   },
 });
 

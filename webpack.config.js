@@ -50,7 +50,10 @@ module.exports = {
       template: path.join(__dirname, 'public/index.html')
     }),
     new webpack.DefinePlugin({
-      __DEV__: true
+      __DEV__: true,
+      'process.env.VITE_FIREBASE_API_KEY': JSON.stringify(process.env.VITE_FIREBASE_API_KEY || ''),
+      'process.env.VITE_FIREBASE_PROJECT_ID': JSON.stringify(process.env.VITE_FIREBASE_PROJECT_ID || ''),
+      'process.env.VITE_FIREBASE_APP_ID': JSON.stringify(process.env.VITE_FIREBASE_APP_ID || '')
     })
   ],
   devServer: {
