@@ -5,7 +5,8 @@ import {
   StyleSheet, 
   ScrollView, 
   TouchableOpacity, 
-  SafeAreaView 
+  SafeAreaView,
+  Alert
 } from 'react-native';
 import ConnectionStatus from '../components/ConnectionStatus';
 
@@ -33,14 +34,33 @@ const HomeScreen = ({ navigation }) => {
             
             <TouchableOpacity 
               style={styles.actionButton}
-              onPress={() => console.log('Find Nearby Hikers')}
+              onPress={() => navigation.navigate('MessagingTab')}
             >
-              <Text style={styles.actionButtonText}>Find Nearby Hikers</Text>
+              <Text style={styles.actionButtonText}>Connect with Hikers</Text>
             </TouchableOpacity>
             
             <TouchableOpacity 
-              style={styles.actionButton}
-              onPress={() => console.log('Send Emergency Signal')}
+              style={[styles.actionButton, styles.emergencyButton]}
+              onPress={() => {
+                Alert.alert(
+                  'Send SOS Emergency Signal',
+                  'This will broadcast your emergency status and location to all nearby hikers. Continue?',
+                  [
+                    {
+                      text: 'Cancel',
+                      style: 'cancel'
+                    },
+                    {
+                      text: 'Send SOS',
+                      style: 'destructive',
+                      onPress: () => {
+                        // Navigate to the messaging screen and send SOS
+                        navigation.navigate('MessagingTab', { sendSOS: true });
+                      }
+                    }
+                  ]
+                );
+              }}
             >
               <Text style={styles.actionButtonText}>Emergency Signal</Text>
             </TouchableOpacity>
@@ -109,6 +129,9 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     width: '48%',
     alignItems: 'center',
+  },
+  emergencyButton: {
+    backgroundColor: '#e74c3c',
   },
   actionButtonText: {
     color: 'white',

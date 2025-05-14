@@ -6,26 +6,28 @@ import HomeScreen from '../screens/HomeScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import MapScreen from '../screens/MapScreen';
 import SettingsScreen from '../screens/SettingsScreen';
-import { Image } from 'react-native';
+import MessagingScreen from '../screens/MessagingScreen';
+import { Image, Text } from 'react-native';
 
 // Create navigators
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
 
+// Common screen options for all stacks
+const screenOptions = {
+  headerStyle: {
+    backgroundColor: '#2c3e50',
+  },
+  headerTintColor: '#fff',
+  headerTitleStyle: {
+    fontWeight: 'bold',
+  },
+};
+
 // Home stack navigator to allow nested navigation
 const HomeStack = () => {
   return (
-    <Stack.Navigator
-      screenOptions={{
-        headerStyle: {
-          backgroundColor: '#2c3e50',
-        },
-        headerTintColor: '#fff',
-        headerTitleStyle: {
-          fontWeight: 'bold',
-        },
-      }}
-    >
+    <Stack.Navigator screenOptions={screenOptions}>
       <Stack.Screen 
         name="Home" 
         component={HomeScreen} 
@@ -40,17 +42,7 @@ const HomeStack = () => {
 // Map stack navigator
 const MapStack = () => {
   return (
-    <Stack.Navigator
-      screenOptions={{
-        headerStyle: {
-          backgroundColor: '#2c3e50',
-        },
-        headerTintColor: '#fff',
-        headerTitleStyle: {
-          fontWeight: 'bold',
-        },
-      }}
-    >
+    <Stack.Navigator screenOptions={screenOptions}>
       <Stack.Screen 
         name="Map" 
         component={MapScreen} 
@@ -62,20 +54,25 @@ const MapStack = () => {
   );
 };
 
+// Messaging stack navigator
+const MessagingStack = () => {
+  return (
+    <Stack.Navigator screenOptions={screenOptions}>
+      <Stack.Screen 
+        name="Messaging" 
+        component={MessagingScreen} 
+        options={{ 
+          title: 'Offline Messaging',
+        }} 
+      />
+    </Stack.Navigator>
+  );
+};
+
 // Profile stack navigator
 const ProfileStack = () => {
   return (
-    <Stack.Navigator
-      screenOptions={{
-        headerStyle: {
-          backgroundColor: '#2c3e50',
-        },
-        headerTintColor: '#fff',
-        headerTitleStyle: {
-          fontWeight: 'bold',
-        },
-      }}
-    >
+    <Stack.Navigator screenOptions={screenOptions}>
       <Stack.Screen 
         name="Profile" 
         component={ProfileScreen} 
@@ -90,17 +87,7 @@ const ProfileStack = () => {
 // Settings stack navigator
 const SettingsStack = () => {
   return (
-    <Stack.Navigator
-      screenOptions={{
-        headerStyle: {
-          backgroundColor: '#2c3e50',
-        },
-        headerTintColor: '#fff',
-        headerTitleStyle: {
-          fontWeight: 'bold',
-        },
-      }}
-    >
+    <Stack.Navigator screenOptions={screenOptions}>
       <Stack.Screen 
         name="Settings" 
         component={SettingsScreen} 
@@ -122,19 +109,20 @@ const AppNavigator = () => {
             let iconName;
 
             if (route.name === 'HomeTab') {
-              iconName = focused ? 'home-focused' : 'home';
+              iconName = focused ? '🏠' : '🏠';
             } else if (route.name === 'MapTab') {
-              iconName = focused ? 'map-focused' : 'map';
+              iconName = focused ? '🗺️' : '🗺️';
+            } else if (route.name === 'MessagingTab') {
+              iconName = focused ? '💬' : '💬';
             } else if (route.name === 'ProfileTab') {
-              iconName = focused ? 'user-focused' : 'user';
+              iconName = focused ? '👤' : '👤';
             } else if (route.name === 'SettingsTab') {
-              iconName = focused ? 'settings-focused' : 'settings';
+              iconName = focused ? '⚙️' : '⚙️';
             }
 
-            // You can return any component here - using a placeholder for now
-            // In a real app, you'd use an actual icon library like react-native-vector-icons
+            // Return emoji icons for simplicity
             return (
-              <TabBarIcon name={iconName} size={size} color={color} />
+              <Text style={{ fontSize: size * 0.8 }}>{iconName}</Text>
             );
           },
           tabBarActiveTintColor: '#27ae60',
@@ -157,6 +145,13 @@ const AppNavigator = () => {
           }} 
         />
         <Tab.Screen 
+          name="MessagingTab" 
+          component={MessagingStack} 
+          options={{ 
+            title: 'Chat',
+          }} 
+        />
+        <Tab.Screen 
           name="ProfileTab" 
           component={ProfileStack} 
           options={{ 
@@ -172,22 +167,6 @@ const AppNavigator = () => {
         />
       </Tab.Navigator>
     </NavigationContainer>
-  );
-};
-
-// Simple placeholder for tab icons
-// In a real app, you would use an icon library
-const TabBarIcon = ({ name, size, color }) => {
-  return (
-    <Image
-      style={{
-        width: size,
-        height: size,
-        tintColor: color
-      }}
-      // This is a placeholder - real app would use an actual icon component
-      source={{ uri: `https://via.placeholder.com/${size}x${size}` }}
-    />
   );
 };
 
