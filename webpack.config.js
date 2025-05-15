@@ -65,6 +65,17 @@ module.exports = {
     historyApiFallback: true,
     hot: true,
     port: 5000,
-    host: '0.0.0.0'
+    host: '0.0.0.0',
+    allowedHosts: 'all',
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+    },
+    client: {
+      webSocketURL: {
+        hostname: '0.0.0.0',
+        pathname: '/ws',
+        port: 5000
+      }
+    }
   }
 };
