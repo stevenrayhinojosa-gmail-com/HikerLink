@@ -172,6 +172,27 @@ class SOSService {
       // Send SOS via messaging service
       const success = await messagingService.sendSOSMessage(message);
       
+      // If online and Firebase is initialized, also send push notification
+      if (firebaseService.isSignedIn()) {
+        try {
+          // Get user data for the notification
+          const userData = await this._getUserInfoForNotification();
+          
+          // Save emergency location to the user's profile
+          await firebaseService.saveUserLocation({
+            ...location,
+            message: message
+          }, true);
+          
+          // Send cloud SOS notification
+          await this._sendSOSPushNotification(userData, location, message);
+          
+          console.log('SOS cloud notification sent');
+        } catch (err) {
+          console.error('Error sending SOS cloud notification:', err);
+        }
+      }
+      
       // Show success or error message
       if (success) {
         Alert.alert(
@@ -193,6 +214,60 @@ class SOSService {
       );
     } finally {
       this.isSending = false;
+    }
+  }
+  
+  // Get user information for notification
+  async _getUserInfoForNotification() {
+    if (!firebaseService.isSignedIn()) {
+      return null;
+    }
+    
+    try {
+      const user = firebaseService.getCurrentUser();
+      return {
+        userId: user.uid,
+        displayName: user.displayName || 'Anonymous Hiker',
+        photoURL: user.photoURL,
+      };
+    } catch (error) {
+      console.error('Error getting user info for notification:', error);
+      return null;
+    }
+  }
+  
+  // Send SOS push notification to nearby hikers
+  async _sendSOSPushNotification(userData, location, message) {
+    if (!firebaseService.isSignedIn() || !userData) {
+      return false;
+    }
+    
+    try {
+      // This would typically involve a cloud function or backend service
+      // to send push notifications to all nearby users
+      
+      // In a full implementation, you would:
+      // 1. Query for nearby users with their FCM tokens
+      // 2. Send notifications to those tokens
+      
+      // For demonstration purposes, we'll use Firebase messaging to 
+      // record the SOS event in Firestore under the 'sos' collection
+      const sosData = {
+        userId: userData.userId,
+        displayName: userData.displayName,
+        location: location,
+        message: message,
+        timestamp: new Date().toISOString(),
+        status: 'active'
+      };
+      
+      // This will be picked up by our Firebase functions (in a real implementation)
+      await firebaseService.saveSOSEvent(sosData);
+      
+      return true;
+    } catch (error) {
+      console.error('Error sending SOS push notification:', error);
+      return false;
     }
   }
 

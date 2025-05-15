@@ -2,12 +2,13 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
+import { View, Text, StyleSheet, Platform } from 'react-native';
 import HomeScreen from '../screens/HomeScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import MapScreen from '../screens/MapScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import MessagingScreen from '../screens/MessagingScreen';
-import { Image, Text } from 'react-native';
+import FloatingSOSButton from '../components/FloatingSOSButton';
 
 // Create navigators
 const Tab = createBottomTabNavigator();
@@ -99,10 +100,10 @@ const SettingsStack = () => {
   );
 };
 
-// App's main navigation (Tab navigator)
-const AppNavigator = () => {
+// Main tab navigator with floating SOS button
+const MainNavigator = () => {
   return (
-    <NavigationContainer>
+    <View style={{ flex: 1 }}>
       <Tab.Navigator
         screenOptions={({ route }) => ({
           tabBarIcon: ({ focused, color, size }) => {
@@ -166,6 +167,18 @@ const AppNavigator = () => {
           }} 
         />
       </Tab.Navigator>
+      
+      {/* Floating SOS Button */}
+      <FloatingSOSButton />
+    </View>
+  );
+};
+
+// App's main navigation (Tab navigator)
+const AppNavigator = () => {
+  return (
+    <NavigationContainer>
+      <MainNavigator />
     </NavigationContainer>
   );
 };

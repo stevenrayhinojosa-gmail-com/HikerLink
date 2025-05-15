@@ -370,6 +370,55 @@ class FirebaseService {
       throw error;
     }
   }
+  
+  /**
+   * Save an SOS event to Firestore
+   * @param {Object} sosData - SOS event data
+   * @returns {Promise<string>} SOS document ID
+   */
+  async saveSOSEvent(sosData) {
+    if (!this.initialized || !this.userId) {
+      throw new Error('Not authenticated');
+    }
+    
+    try {
+      // Create a new SOS document
+      const sosCollectionRef = collection(this.firestore, 'sos');
+      const sosDocRef = doc(sosCollectionRef);
+      
+      // Enhance the SOS data with event details
+      const enhancedSosData = {
+        ...sosData,
+        createdBy: this.userId,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        notifications: {
+          sent: false,
+          sentAt: null,
+          recipients: []
+        }
+      };
+      
+      // Save the SOS event to Firestore
+      await setDoc(sosDocRef, enhancedSosData);
+      
+      // Also update user's emergency status
+      const userDocRef = doc(this.firestore, 'users', this.userId);
+      await updateDoc(userDocRef, {
+        emergencyStatus: {
+          isInEmergency: true,
+          emergencyTime: new Date().toISOString(),
+          sosDocId: sosDocRef.id
+        }
+      });
+      
+      console.log('SOS event saved to Firestore:', sosDocRef.id);
+      return sosDocRef.id;
+    } catch (error) {
+      console.error('Error saving SOS event:', error);
+      throw error;
+    }
+  }
 
   /**
    * Get user data
