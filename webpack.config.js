@@ -42,7 +42,10 @@ module.exports = {
       // Add web mocks for native modules
       'react-native-fs': path.resolve(__dirname, 'src/mocks/web-mocks.js'),
       'react-native-maps': path.resolve(__dirname, 'src/mocks/web-mocks.js'),
-      'react-native-geolocation-service': path.resolve(__dirname, 'src/mocks/web-mocks.js')
+      'react-native-geolocation-service': path.resolve(__dirname, 'src/mocks/web-mocks.js'),
+      'react-native-shake': path.resolve(__dirname, 'src/mocks/web-mocks.js'),
+      'react-native-haptic-feedback': path.resolve(__dirname, 'src/mocks/web-mocks.js'),
+      'react-native-vibration': path.resolve(__dirname, 'src/mocks/web-mocks.js')
     }
   },
   plugins: [

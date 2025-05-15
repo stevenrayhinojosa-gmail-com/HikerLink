@@ -247,10 +247,70 @@ export const FirebaseMessaging = {
   }
 };
 
+// Mock for react-native-shake
+export const RNShake = {
+  addListener: (callback) => {
+    console.log('[Web RNShake Mock] Adding shake listener');
+    
+    // For web, we'll simulate shake with a keyboard shortcut (Alt+S)
+    if (typeof window !== 'undefined') {
+      const handleKeyDown = (event) => {
+        if (event.altKey && event.key === 's') {
+          console.log('[Web RNShake Mock] Shake detected via Alt+S shortcut');
+          callback();
+        }
+      };
+      
+      window.addEventListener('keydown', handleKeyDown);
+      
+      // Return mock subscription
+      return {
+        remove: () => {
+          console.log('[Web RNShake Mock] Removing shake listener');
+          window.removeEventListener('keydown', handleKeyDown);
+        }
+      };
+    }
+    
+    // Return empty subscription for non-browser environments
+    return { remove: () => {} };
+  }
+};
+
+// Mock for react-native-haptic-feedback
+export const ReactNativeHapticFeedback = {
+  trigger: (type, options) => {
+    console.log(`[Web Haptic Mock] Triggered haptic feedback: ${type}`);
+  }
+};
+
+// Mock for react-native-vibration
+export const Vibration = {
+  vibrate: (pattern) => {
+    console.log('[Web Vibration Mock] Vibrating with pattern:', pattern);
+  },
+  cancel: () => {
+    console.log('[Web Vibration Mock] Cancelling vibration');
+  }
+};
+
 // Apply mocks based on platform
 if (Platform.OS === 'web') {
   // Mock SQLite for web
   if (!global.SQLite) {
     global.SQLite = SQLiteStorage;
+  }
+  
+  // Add other mocks
+  if (!global.RNShake) {
+    global.RNShake = RNShake;
+  }
+  
+  if (!global.ReactNativeHapticFeedback) {
+    global.ReactNativeHapticFeedback = ReactNativeHapticFeedback;
+  }
+  
+  if (!global.Vibration) {
+    global.Vibration = Vibration;
   }
 }

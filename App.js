@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar, View, Text, ActivityIndicator, StyleSheet } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import AppNavigator from './src/navigation/AppNavigator';
 import { requestLocationPermissions, requestBluetoothPermissions } from './src/utils/permissions';
 import firebaseConfig from './src/config/firebase';
 import firebaseService from './src/services/firebaseService';
 import messagingService from './src/services/messagingService';
 import databaseService from './src/services/databaseService';
+import sosService from './src/services/sosService';
 
 // Import mock SQLite for web platform
 import './src/mocks/web-mocks';
@@ -42,6 +44,18 @@ const App = () => {
           // Initialize messaging service without Firebase config
           await messagingService.initialize(null, 'Anonymous Hiker');
         }
+        
+        // Initialize SOS service
+        sosService.initialize(
+          "I need help! This is an emergency SOS signal triggered by shake/long press.",
+          () => {
+            console.log("SOS callback triggered");
+            // Navigate directly to Messaging screen when SOS is triggered
+            // We'll rely on the SOS service to handle the actual SOS message sending
+          }
+        );
+        console.log('SOS service initialized');
+        
       } catch (err) {
         console.error('Error initializing app:', err);
         setError(err.message);
@@ -59,6 +73,9 @@ const App = () => {
       
       // Clean up Firebase listeners
       firebaseService.cleanup();
+      
+      // Clean up SOS service
+      sosService.cleanup();
     };
   }, []);
 
