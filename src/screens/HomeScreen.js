@@ -18,12 +18,15 @@ import messagingService from '../services/messagingService';
 const HomeScreen = ({ navigation }) => {
   const [user, setUser] = useState(null);
   const [isAuthModalVisible, setIsAuthModalVisible] = useState(false);
+  const [isTrackingModalVisible, setIsTrackingModalVisible] = useState(false);
   const [authMode, setAuthMode] = useState('login'); // 'login' or 'signup'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [selectedTrackingMode, setSelectedTrackingMode] = useState('standard');
+  const [isBackgroundTrackingOn, setIsBackgroundTrackingOn] = useState(false);
 
   // Check user login state
   useEffect(() => {
@@ -191,7 +194,7 @@ const HomeScreen = ({ navigation }) => {
             
             <TouchableOpacity 
               style={styles.actionButton}
-              onPress={() => navigation.navigate('MapTab', { startTracking: true })}
+              onPress={() => setIsTrackingModalVisible(true)}
             >
               <Text style={styles.actionButtonText}>Track My Hike</Text>
             </TouchableOpacity>
@@ -299,6 +302,95 @@ const HomeScreen = ({ navigation }) => {
             >
               <Text style={styles.closeButtonText}>Cancel</Text>
             </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Tracking Settings Modal */}
+      <Modal
+        visible={isTrackingModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setIsTrackingModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Tracking Settings</Text>
+            
+            <View style={styles.trackingSection}>
+              <Text style={styles.sectionTitle}>Tracking Mode</Text>
+              
+              <TouchableOpacity 
+                style={[
+                  styles.trackingOption,
+                  selectedTrackingMode === 'power-saving' && styles.selectedTrackingOption
+                ]}
+                onPress={() => setSelectedTrackingMode('power-saving')}
+              >
+                <Text style={styles.trackingOptionTitle}>Power Saving</Text>
+                <Text style={styles.trackingOptionDescription}>Less frequent updates, longer battery life</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[
+                  styles.trackingOption,
+                  selectedTrackingMode === 'standard' && styles.selectedTrackingOption
+                ]}
+                onPress={() => setSelectedTrackingMode('standard')}
+              >
+                <Text style={styles.trackingOptionTitle}>Standard</Text>
+                <Text style={styles.trackingOptionDescription}>Regular location updates (recommended)</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[
+                  styles.trackingOption,
+                  selectedTrackingMode === 'high-accuracy' && styles.selectedTrackingOption
+                ]}
+                onPress={() => setSelectedTrackingMode('high-accuracy')}
+              >
+                <Text style={styles.trackingOptionTitle}>High Accuracy</Text>
+                <Text style={styles.trackingOptionDescription}>Frequent updates, higher battery usage</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.toggleContainer}>
+              <Text style={styles.toggleLabel}>Background Tracking</Text>
+              <Switch
+                value={isBackgroundTrackingOn}
+                onValueChange={setIsBackgroundTrackingOn}
+                trackColor={{ false: '#767577', true: '#27ae60' }}
+                thumbColor={isBackgroundTrackingOn ? '#f5fcff' : '#f4f3f4'}
+              />
+            </View>
+            
+            <Text style={styles.toggleDescription}>
+              Keeps tracking your location even when the app is in the background or closed
+            </Text>
+            
+            <View style={styles.trackingButtons}>
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={() => setIsTrackingModalVisible(false)}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={styles.startTrackingButton}
+                onPress={() => {
+                  setIsTrackingModalVisible(false);
+                  // Navigate to map screen with tracking params
+                  navigation.navigate('MapTab', { 
+                    startTracking: true,
+                    trackingMode: selectedTrackingMode,
+                    backgroundTracking: isBackgroundTrackingOn
+                  });
+                }}
+              >
+                <Text style={styles.startTrackingButtonText}>Start Tracking</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -467,6 +559,75 @@ const styles = StyleSheet.create({
     color: '#e74c3c',
     marginBottom: 15,
     textAlign: 'center',
+  },
+  // Tracking Modal Styles
+  trackingSection: {
+    marginBottom: 20,
+  },
+  trackingOption: {
+    padding: 15,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 5,
+    marginBottom: 10,
+    backgroundColor: '#f9f9f9',
+  },
+  selectedTrackingOption: {
+    borderColor: '#27ae60',
+    backgroundColor: '#e0f2f1',
+  },
+  trackingOptionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#2c3e50',
+    marginBottom: 5,
+  },
+  trackingOptionDescription: {
+    fontSize: 14,
+    color: '#7f8c8d',
+  },
+  toggleContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 5,
+  },
+  toggleLabel: {
+    fontSize: 16,
+    color: '#2c3e50',
+  },
+  toggleDescription: {
+    fontSize: 14,
+    color: '#7f8c8d',
+    marginBottom: 20,
+  },
+  trackingButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  cancelButton: {
+    backgroundColor: '#ecf0f1',
+    padding: 12,
+    borderRadius: 5,
+    flex: 1,
+    marginRight: 10,
+    alignItems: 'center',
+  },
+  cancelButtonText: {
+    color: '#2c3e50',
+    fontWeight: 'bold',
+  },
+  startTrackingButton: {
+    backgroundColor: '#27ae60',
+    padding: 12,
+    borderRadius: 5,
+    flex: 1,
+    marginLeft: 10,
+    alignItems: 'center',
+  },
+  startTrackingButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
   },
 });
 

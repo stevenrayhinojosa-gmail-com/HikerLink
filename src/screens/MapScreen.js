@@ -44,7 +44,16 @@ const MapScreen = ({ route }) => {
     if (route?.params?.startTracking) {
       // Slight delay to make sure all services are initialized
       setTimeout(() => {
-        startTracking('standard');
+        // Check if we have mode and background tracking settings
+        const mode = route.params.trackingMode || 'standard';
+        const useBackgroundTracking = route.params.backgroundTracking || false;
+        
+        // Update state before starting
+        setTrackingMode(mode);
+        setIsBackgroundTrackingEnabled(useBackgroundTracking);
+        
+        // Start tracking with the specified mode
+        startTracking(mode);
       }, 1000);
     }
     
@@ -678,13 +687,42 @@ const styles = StyleSheet.create({
   mapContainer: {
     height: Dimensions.get('window').height * 0.5,
     backgroundColor: '#f0f0f0',
-    marginBottom: 20,
+    marginBottom: 10,
+  },
+  // Track stats display styles
+  statsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    backgroundColor: '#f5f5f5',
+    borderRadius: 8,
+    marginHorizontal: 10,
+    marginBottom: 10,
+    padding: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  statItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#7f8c8d',
+    marginBottom: 2,
+  },
+  statValue: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#2c3e50',
   },
   controlsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     marginHorizontal: 10,
-    marginBottom: 20,
+    marginBottom: 15,
   },
   controlButton: {
     backgroundColor: '#27ae60',
@@ -729,6 +767,103 @@ const styles = StyleSheet.create({
   hikerDistance: {
     fontSize: 16,
     color: '#7f8c8d',
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    maxHeight: Dimensions.get('window').height * 0.8,
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#2c3e50',
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  settingsSection: {
+    marginBottom: 20,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#2c3e50',
+    marginBottom: 10,
+  },
+  trackingModes: {
+    flexDirection: 'column',
+  },
+  modeButton: {
+    padding: 15,
+    marginVertical: 5,
+    borderRadius: 8,
+    backgroundColor: '#f5f5f5',
+    borderWidth: 1,
+    borderColor: '#ddd',
+  },
+  modeButtonActive: {
+    backgroundColor: '#e0f2f1',
+    borderColor: '#009688',
+  },
+  modeButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#2c3e50',
+    marginBottom: 5,
+  },
+  modeDescription: {
+    fontSize: 14,
+    color: '#7f8c8d',
+  },
+  settingItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginVertical: 8,
+  },
+  settingLabel: {
+    fontSize: 16,
+    color: '#2c3e50',
+    flex: 1,
+  },
+  settingDescription: {
+    fontSize: 14,
+    color: '#7f8c8d',
+    marginTop: 5,
+    marginBottom: 15,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 20,
+  },
+  modalButton: {
+    flex: 1,
+    padding: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginHorizontal: 5,
+    backgroundColor: '#ecf0f1',
+  },
+  modalButtonText: {
+    fontSize: 16,
+    color: '#2c3e50',
+    fontWeight: '500',
+  },
+  startButton: {
+    backgroundColor: '#27ae60',
+  },
+  startButtonText: {
+    color: 'white',
+    fontWeight: '500',
+    fontSize: 16,
   },
 });
 
