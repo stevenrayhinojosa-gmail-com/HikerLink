@@ -294,6 +294,209 @@ export const Vibration = {
   }
 };
 
+// Mock for react-native-background-geolocation
+export const BackgroundGeolocation = {
+  // Constants
+  LOG_LEVEL_VERBOSE: 5,
+  LOG_LEVEL_DEBUG: 4,
+  LOG_LEVEL_INFO: 3,
+  LOG_LEVEL_WARNING: 2,
+  LOG_LEVEL_ERROR: 1,
+  LOG_LEVEL_OFF: 0,
+  
+  DESIRED_ACCURACY_HIGH: 0,
+  DESIRED_ACCURACY_MEDIUM: 10,
+  DESIRED_ACCURACY_LOW: 100,
+  DESIRED_ACCURACY_VERY_LOW: 1000,
+  
+  ACTIVITY_TYPE_OTHER: 1,
+  ACTIVITY_TYPE_AUTOMOTIVE_NAVIGATION: 2,
+  ACTIVITY_TYPE_FITNESS: 3,
+  ACTIVITY_TYPE_OTHER_NAVIGATION: 4,
+  
+  // Configuration methods
+  ready: (config) => {
+    console.log('[Web BackgroundGeolocation Mock] Configured with:', config);
+    return Promise.resolve(config);
+  },
+  
+  // Location tracking methods
+  start: () => {
+    console.log('[Web BackgroundGeolocation Mock] Started');
+    return Promise.resolve(true);
+  },
+  
+  stop: () => {
+    console.log('[Web BackgroundGeolocation Mock] Stopped');
+    return Promise.resolve(true);
+  },
+  
+  getCurrentPosition: (options) => {
+    console.log('[Web BackgroundGeolocation Mock] Getting current position with options:', options);
+    
+    // Simulate getting current position with HTML5 Geolocation API
+    if (navigator && navigator.geolocation) {
+      return new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const location = {
+              coords: {
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude,
+                altitude: position.coords.altitude,
+                accuracy: position.coords.accuracy,
+                speed: position.coords.speed,
+                heading: position.coords.heading
+              },
+              timestamp: new Date().toISOString(),
+              is_moving: true,
+              odometer: 0,
+              uuid: `web-${Date.now()}-${Math.floor(Math.random() * 10000)}`
+            };
+            console.log('[Web BackgroundGeolocation Mock] Position:', location);
+            resolve(location);
+          },
+          (error) => {
+            console.error('[Web BackgroundGeolocation Mock] Error getting position:', error);
+            reject(error);
+          },
+          {
+            enableHighAccuracy: options.desiredAccuracy === 0, // High accuracy
+            timeout: options.timeout || 15000,
+            maximumAge: options.maximumAge || 0
+          }
+        );
+      });
+    } else {
+      return Promise.reject(new Error('Geolocation not available'));
+    }
+  },
+  
+  // Data management methods
+  getLocations: () => {
+    console.log('[Web BackgroundGeolocation Mock] Getting stored locations');
+    // Return some mock locations from localStorage if available
+    let locations = [];
+    try {
+      const storedLocations = localStorage.getItem('bggeolocation_locations');
+      if (storedLocations) {
+        locations = JSON.parse(storedLocations);
+      }
+    } catch (e) {
+      console.error('[Web BackgroundGeolocation Mock] Error getting stored locations:', e);
+    }
+    return Promise.resolve(locations);
+  },
+  
+  destroyLocations: (locationIds) => {
+    console.log('[Web BackgroundGeolocation Mock] Destroying locations:', locationIds);
+    // Remove locations from localStorage if available
+    try {
+      const storedLocations = localStorage.getItem('bggeolocation_locations');
+      if (storedLocations) {
+        const locations = JSON.parse(storedLocations);
+        const remaining = locations.filter(loc => !locationIds.includes(loc.uuid));
+        localStorage.setItem('bggeolocation_locations', JSON.stringify(remaining));
+      }
+    } catch (e) {
+      console.error('[Web BackgroundGeolocation Mock] Error destroying locations:', e);
+    }
+    return Promise.resolve(true);
+  },
+  
+  // Configuration update
+  setConfig: (config) => {
+    console.log('[Web BackgroundGeolocation Mock] Updated config:', config);
+    return Promise.resolve(config);
+  },
+  
+  // Event listeners
+  onLocation: (callback) => {
+    console.log('[Web BackgroundGeolocation Mock] Added location listener');
+    return () => console.log('[Web BackgroundGeolocation Mock] Removed location listener');
+  },
+  
+  onMotionChange: (callback) => {
+    console.log('[Web BackgroundGeolocation Mock] Added motion change listener');
+    return () => console.log('[Web BackgroundGeolocation Mock] Removed motion change listener');
+  },
+  
+  onActivityChange: (callback) => {
+    console.log('[Web BackgroundGeolocation Mock] Added activity change listener');
+    return () => console.log('[Web BackgroundGeolocation Mock] Removed activity change listener');
+  },
+  
+  onHeartbeat: (callback) => {
+    console.log('[Web BackgroundGeolocation Mock] Added heartbeat listener');
+    return () => console.log('[Web BackgroundGeolocation Mock] Removed heartbeat listener');
+  },
+  
+  onProviderChange: (callback) => {
+    console.log('[Web BackgroundGeolocation Mock] Added provider change listener');
+    return () => console.log('[Web BackgroundGeolocation Mock] Removed provider change listener');
+  },
+  
+  removeListeners: () => {
+    console.log('[Web BackgroundGeolocation Mock] Removed all listeners');
+  }
+};
+
+// Mock for react-native-background-fetch
+export const BackgroundFetch = {
+  STATUS_RESTRICTED: 0,
+  STATUS_DENIED: 1,
+  STATUS_AVAILABLE: 2,
+  
+  FETCH_RESULT_NEW_DATA: 0,
+  FETCH_RESULT_NO_DATA: 1,
+  FETCH_RESULT_FAILED: 2,
+  
+  configure: (config, successCallback, failureCallback) => {
+    console.log('[Web BackgroundFetch Mock] Configured with:', config);
+    
+    // Simulate a background fetch event every 15 minutes (if possible)
+    try {
+      setInterval(() => {
+        if (typeof successCallback === 'function') {
+          console.log('[Web BackgroundFetch Mock] Simulating fetch event');
+          successCallback('com.hikerlink.fetch');
+        }
+      }, Math.max(15, config.minimumFetchInterval || 15) * 60000);
+      
+      // Return "available" status
+      setTimeout(() => {
+        if (typeof successCallback === 'function') {
+          successCallback(2); // STATUS_AVAILABLE
+        }
+      }, 500);
+    } catch (e) {
+      console.error('[Web BackgroundFetch Mock] Error configuring:', e);
+      if (typeof failureCallback === 'function') {
+        failureCallback(e);
+      }
+    }
+  },
+  
+  scheduleTask: (task) => {
+    console.log('[Web BackgroundFetch Mock] Scheduled task:', task);
+    return Promise.resolve(true);
+  },
+  
+  start: () => {
+    console.log('[Web BackgroundFetch Mock] Started');
+    return Promise.resolve(true);
+  },
+  
+  stop: () => {
+    console.log('[Web BackgroundFetch Mock] Stopped');
+    return Promise.resolve(true);
+  },
+  
+  finish: (taskId) => {
+    console.log('[Web BackgroundFetch Mock] Finished task:', taskId);
+  }
+};
+
 // Apply mocks based on platform
 if (Platform.OS === 'web') {
   // Mock SQLite for web
@@ -312,5 +515,15 @@ if (Platform.OS === 'web') {
   
   if (!global.Vibration) {
     global.Vibration = Vibration;
+  }
+  
+  // Add BackgroundGeolocation mock
+  if (!global.BackgroundGeolocation) {
+    global.BackgroundGeolocation = BackgroundGeolocation;
+  }
+  
+  // Add BackgroundFetch mock
+  if (!global.BackgroundFetch) {
+    global.BackgroundFetch = BackgroundFetch;
   }
 }

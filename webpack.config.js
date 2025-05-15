@@ -45,7 +45,9 @@ module.exports = {
       'react-native-geolocation-service': path.resolve(__dirname, 'src/mocks/web-mocks.js'),
       'react-native-shake': path.resolve(__dirname, 'src/mocks/web-mocks.js'),
       'react-native-haptic-feedback': path.resolve(__dirname, 'src/mocks/web-mocks.js'),
-      'react-native-vibration': path.resolve(__dirname, 'src/mocks/web-mocks.js')
+      'react-native-vibration': path.resolve(__dirname, 'src/mocks/web-mocks.js'),
+      'react-native-background-geolocation': path.resolve(__dirname, 'src/mocks/web-mocks.js'),
+      'react-native-background-fetch': path.resolve(__dirname, 'src/mocks/web-mocks.js')
     }
   },
   plugins: [

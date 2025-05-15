@@ -365,8 +365,147 @@ class FirebaseService {
           message: location.message || 'Emergency SOS'
         });
       }
+      
+      // Also save to location history if not already there
+      await this.saveLocationHistory([location]);
     } catch (error) {
       console.error('Save user location error:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Save location history to Firestore
+   * @param {Array} locations - Array of location objects
+   * @returns {Promise<void>}
+   */
+  async saveLocationHistory(locations) {
+    if (!this.initialized || !this.userId || !locations || locations.length === 0) {
+      return;
+    }
+    
+    try {
+      const batch = [];
+      const historyCollectionRef = collection(this.firestore, 'users', this.userId, 'location_history');
+      
+      // Process each location
+      for (const location of locations) {
+        if (!location || !location.latitude || !location.longitude) continue;
+        
+        // Create a unique ID based on timestamp if not provided
+        const timestamp = location.timestamp || new Date().toISOString();
+        const id = location.uuid || `loc_${new Date(timestamp).getTime()}`;
+        
+        // Format the location data
+        const locationData = {
+          latitude: location.latitude,
+          longitude: location.longitude,
+          altitude: location.altitude || null,
+          accuracy: location.accuracy || null,
+          speed: location.speed || null,
+          heading: location.heading || null,
+          timestamp: timestamp,
+          activity: location.activity || null,
+          batteryLevel: location.battery?.level || null,
+          isCharging: location.battery?.isCharging || false,
+          isMoving: location.is_moving || false,
+          uuid: id,
+          createdAt: new Date().toISOString()
+        };
+        
+        // Add location to batch
+        const locationDocRef = doc(historyCollectionRef, id);
+        batch.push(setDoc(locationDocRef, locationData, { merge: true }));
+      }
+      
+      // Also update the user's last known location document
+      if (locations.length > 0) {
+        // Find the most recent location
+        const sortedLocations = [...locations].sort((a, b) => {
+          return new Date(b.timestamp || 0) - new Date(a.timestamp || 0);
+        });
+        
+        const mostRecent = sortedLocations[0];
+        
+        // Only update last location if it's not an emergency (to avoid overwriting emergency status)
+        const userDocRef = doc(this.firestore, 'users', this.userId);
+        const userDoc = await getDoc(userDocRef);
+        
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          const currentLocation = userData.location || {};
+          
+          // Don't overwrite emergency status
+          if (!currentLocation.isEmergency) {
+            batch.push(updateDoc(userDocRef, {
+              'lastKnownLocation': {
+                latitude: mostRecent.latitude,
+                longitude: mostRecent.longitude,
+                altitude: mostRecent.altitude || null,
+                accuracy: mostRecent.accuracy || null,
+                timestamp: mostRecent.timestamp || new Date().toISOString(),
+                isEmergency: false
+              }
+            }));
+          }
+        }
+      }
+      
+      // Commit all operations in smaller batches (Firestore has a limit of 500 ops per batch)
+      const batchSize = 450;
+      for (let i = 0; i < batch.length; i += batchSize) {
+        const currentBatch = batch.slice(i, i + batchSize);
+        await Promise.all(currentBatch.map(operation => operation));
+      }
+      
+      console.log(`Saved ${locations.length} locations to history`);
+    } catch (error) {
+      console.error('Save location history error:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Get location history from Firestore
+   * @param {Object} options - Query options (timeFrom, timeTo, limit)
+   * @returns {Promise<Array>} Array of location history objects
+   */
+  async getLocationHistory(options = {}) {
+    if (!this.initialized || !this.userId) {
+      throw new Error('Not authenticated');
+    }
+    
+    try {
+      const historyCollectionRef = collection(this.firestore, 'users', this.userId, 'location_history');
+      let historyQuery = query(historyCollectionRef, orderBy('timestamp', 'desc'));
+      
+      // Apply time filters if provided
+      if (options.timeFrom) {
+        historyQuery = query(historyQuery, where('timestamp', '>=', options.timeFrom));
+      }
+      
+      if (options.timeTo) {
+        historyQuery = query(historyQuery, where('timestamp', '<=', options.timeTo));
+      }
+      
+      // Apply limit if provided
+      if (options.limit) {
+        historyQuery = query(historyQuery, limit(options.limit));
+      }
+      
+      const historySnapshot = await getDocs(historyQuery);
+      
+      const history = [];
+      historySnapshot.forEach(doc => {
+        history.push({
+          id: doc.id,
+          ...doc.data()
+        });
+      });
+      
+      return history;
+    } catch (error) {
+      console.error('Get location history error:', error);
       throw error;
     }
   }
