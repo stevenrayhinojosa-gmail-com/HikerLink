@@ -3,7 +3,13 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "web": "webpack serve --config webpack.config.js --mode=development --port 3000 --host 0.0.0.0",
+    "web:simple": "webpack serve --config webpack.config.simple.js --mode=development --port 3000 --host 0.0.0.0",
+    "build": "webpack --config webpack.config.js --mode=production",
+    "build:simple": "webpack --config webpack.config.simple.js --mode=production",
+    "ios": "react-native run-ios",
+    "android": "react-native run-android"
   },
   "keywords": [],
   "author": "",
