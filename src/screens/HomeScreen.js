@@ -12,6 +12,7 @@ import {
   ActivityIndicator
 } from 'react-native';
 import ConnectionStatus from '../components/ConnectionStatus';
+import TestConnect from '../components/TestConnect';
 import firebaseService from '../services/firebaseService';
 import messagingService from '../services/messagingService';
 
@@ -118,6 +119,7 @@ const HomeScreen = ({ navigation }) => {
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.contentContainer}>
         <ConnectionStatus />
+        <TestConnect />
         
         <View style={styles.welcomeSection}>
           <Text style={styles.title}>Welcome to HikerLink</Text>

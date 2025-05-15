@@ -5,6 +5,9 @@
 
 import { Platform } from 'react-native';
 
+// Ensure we're in a browser environment to avoid module format conflicts
+const isBrowser = typeof window !== 'undefined' && typeof document !== 'undefined';
+
 // Mock for react-native-sqlite-storage using IndexedDB
 export const SQLiteStorage = {
   enablePromise: (enable) => {
