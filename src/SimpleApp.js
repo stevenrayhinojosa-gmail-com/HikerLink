@@ -1,13 +1,47 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 const SimpleApp = () => {
   const [showBackgroundSettings, setShowBackgroundSettings] = useState(false);
   const [trackingMode, setTrackingMode] = useState('standard');
   const [isBackgroundTracking, setIsBackgroundTracking] = useState(false);
+  const [isTracking, setIsTracking] = useState(false);
+  const [trackingInfo, setTrackingInfo] = useState(null);
+
+  // Log the state on each change to help with debugging
+  useEffect(() => {
+    console.log('Current state:', {
+      showBackgroundSettings,
+      trackingMode,
+      isBackgroundTracking,
+      isTracking
+    });
+  }, [showBackgroundSettings, trackingMode, isBackgroundTracking, isTracking]);
 
   const handleStart = () => {
+    // Log that the button was clicked
+    console.log('Start tracking button clicked');
+    
+    // Update the tracking state
+    setIsTracking(true);
+    setTrackingInfo({
+      mode: trackingMode,
+      background: isBackgroundTracking,
+      startTime: new Date().toISOString()
+    });
+    
+    // Show the alert to confirm tracking started
     alert(`Started tracking in ${trackingMode} mode with background tracking ${isBackgroundTracking ? 'enabled' : 'disabled'}`);
+    
+    // Close the settings modal
     setShowBackgroundSettings(false);
+  };
+
+  // Function to stop tracking
+  const handleStopTracking = () => {
+    console.log('Stopping tracking');
+    setIsTracking(false);
+    setTrackingInfo(null);
+    alert('Tracking stopped');
   };
 
   return (
@@ -15,7 +49,28 @@ const SimpleApp = () => {
       <h1 style={styles.title}>HikerLink</h1>
       <p style={styles.subtitle}>Background Location Tracking Demo</p>
       
-      {!showBackgroundSettings ? (
+      {isTracking && trackingInfo && (
+        <div style={styles.activeTrackingContainer}>
+          <h2 style={styles.trackingTitle}>Tracking Active</h2>
+          <p style={styles.trackingInfo}>
+            Mode: <strong>{trackingInfo.mode}</strong>
+          </p>
+          <p style={styles.trackingInfo}>
+            Background: <strong>{trackingInfo.background ? 'Enabled' : 'Disabled'}</strong>
+          </p>
+          <p style={styles.trackingInfo}>
+            Started: <strong>{new Date(trackingInfo.startTime).toLocaleTimeString()}</strong>
+          </p>
+          <button 
+            style={styles.stopButton}
+            onClick={handleStopTracking}
+          >
+            Stop Tracking
+          </button>
+        </div>
+      )}
+      
+      {!isTracking && !showBackgroundSettings && (
         <div style={styles.buttonContainer}>
           <button 
             style={styles.button}
@@ -24,7 +79,9 @@ const SimpleApp = () => {
             Start Tracking
           </button>
         </div>
-      ) : (
+      )}
+      
+      {!isTracking && showBackgroundSettings && (
         <div style={styles.settingsContainer}>
           <h2 style={styles.settingsTitle}>Tracking Settings</h2>
           
@@ -219,6 +276,37 @@ const styles = {
     borderRadius: '4px',
     cursor: 'pointer',
   },
+  // Active tracking styles
+  activeTrackingContainer: {
+    backgroundColor: '#e0f7fa',
+    padding: '20px',
+    borderRadius: '8px',
+    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+    marginBottom: '20px',
+    border: '2px solid #00bcd4',
+  },
+  trackingTitle: {
+    fontSize: '20px',
+    color: '#00838f',
+    textAlign: 'center',
+    marginBottom: '15px',
+  },
+  trackingInfo: {
+    fontSize: '16px',
+    marginBottom: '10px',
+    color: '#333',
+  },
+  stopButton: {
+    backgroundColor: '#e74c3c',
+    color: 'white',
+    border: 'none',
+    padding: '10px 20px',
+    fontSize: '16px',
+    borderRadius: '4px',
+    cursor: 'pointer',
+    marginTop: '15px',
+    width: '100%',
+  }
 };
 
 export default SimpleApp;
