@@ -64,8 +64,10 @@ npm run web
 ```
 or for development mode:
 ```
-npx webpack serve --config webpack.config.simple.js --mode=development --port 5000 --host 0.0.0.0
+npx webpack serve --config webpack.config.simple.js --mode=development --port 3000 --host 0.0.0.0
 ```
+
+**Note**: We've changed the port from 5000 to 3000 to avoid conflicts with macOS Control Center which uses port 5000.
 
 #### iOS
 ```
